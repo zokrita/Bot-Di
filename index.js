@@ -19,7 +19,7 @@ const client = new Client({
 const distube = new DisTube(client, {
     //searchSongs: 1,
     emitNewSongOnly: true,
-    ffmpegPath: ffmpegPath,
+    //ffmpegPath: ffmpegPath,
     //leaveOnFinish: true,
     plugins: [new YtDlpPlugin()]
 });
