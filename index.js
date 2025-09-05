@@ -1,8 +1,9 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { DisTube } from "distube";
-import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube 
+import { YtDlpPlugin } from "@distube/yt-dlp";
 import dotenv from "dotenv";
 import ffmpeg from "ffmpeg-static";
+import { joinVoiceChannel, getVoiceConnection, entersState, VoiceConnectionStatus } from "@discordjs/voice";
 
 dotenv.config();
 
@@ -15,14 +16,14 @@ const client = new Client({
     ]
 });
 
-// Inicializa Distube con el plugin YtDlp
+// Inicializa Distube
 const distube = new DisTube(client, {
     emitNewSongOnly: true,
     ffmpeg: ffmpeg,
     plugins: [new YtDlpPlugin()]
 });
 
-client.once("ready", () => {
+client.once("clientReady", () => {
     console.log(`${client.user.tag} listo`);
 });
 
@@ -39,11 +40,17 @@ client.on("messageCreate", async (message) => {
     const queue = distube.getQueue(message.guildId);
     const voiceChannel = message.member.voice.channel;
 
-    // Comando -join: el bot entra al canal sin reproducir
+    // -join
     if (command === "join") {
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero.");
         try {
-            await voiceChannel.join(); // El bot se conecta al canal
+            const connection = joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: voiceChannel.guild.id,
+                adapterCreator: voiceChannel.guild.voiceAdapterCreator
+            });
+            // Espera a que la conexión esté lista
+            await entersState(connection, VoiceConnectionStatus.Ready, 5000);
             message.channel.send(`👋 Me uní a ${voiceChannel.name}`);
         } catch (err) {
             console.error(err);
@@ -51,7 +58,7 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando -play
+    // -play
     else if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
@@ -69,14 +76,14 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando -para
+    // -para
     else if (command === "para") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.stop();
         message.channel.send("⏹️ Reproducción detenida y cola borrada.");
     }
 
-    // Comando -otra
+    // -otra
     else if (command === "otra") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         try {
@@ -87,14 +94,14 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando -callate
+    // -callate
     else if (command === "callate") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.pause();
         message.channel.send("⏸️ Canción pausada.");
     }
 
-    // Comando -canta
+    // -canta
     else if (command === "canta") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
@@ -102,17 +109,22 @@ client.on("messageCreate", async (message) => {
     }
 });
 
-// Evento para salir automáticamente si queda solo
+// Salir automáticamente si queda solo en el canal
 client.on("voiceStateUpdate", (oldState, newState) => {
-    const botMember = oldState.guild.members.me;
-    if (!botMember.voice.channel) return; // Si el bot no está en ningún canal, no hacer nada
+    // Canal anterior
+    const oldChannel = oldState.channel;
+    if (!oldChannel) return;
 
-    const channel = botMember.voice.channel;
-    if (channel.members.size === 1) { // Solo queda el bot
-        const queue = distube.getQueue(oldState.guild.id);
-        if (queue) queue.stop(); // Detener música
-        channel.leave(); // Salir del canal
-        channel.send("😢 Me quedé solo... ¡Me voy del canal!");
+    // Si el bot está en ese canal y queda solo
+    const botMember = oldChannel.members.get(client.user.id);
+    if (botMember && oldChannel.members.size === 1) {
+        const connection = getVoiceConnection(oldState.guild.id);
+        if (connection) {
+            const queue = distube.getQueue(oldState.guild.id);
+            if (queue) queue.stop();
+            connection.destroy();
+            oldChannel.send("😢 Me quedé solo... ¡Me voy del canal!");
+        }
     }
 });
 
