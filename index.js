@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import { DisTube } from "distube";
 import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube 
 import dotenv from "dotenv";
-import ffmpegPath from "ffmpeg-static";
+import ffmpeg from "ffmpeg-static";
 
 
 dotenv.config();
@@ -20,7 +20,7 @@ const client = new Client({
 const distube = new DisTube(client, {
     //searchSongs: 1,
     emitNewSongOnly: true,
-    ffmpeg: ffmpegPath,
+    ffmpeg: ffmpeg,
     //leaveOnFinish: true,
     plugins: [new YtDlpPlugin()]
 });
