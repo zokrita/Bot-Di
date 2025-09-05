@@ -104,6 +104,18 @@ client.on("messageCreate", async (message) => {
     }
 });
 
+client.on("voiceStateUpdate", (oldState, newState) => {
+    // Si alguien sale de un canal de voz
+    if (oldState.channelId && oldState.channel && oldState.channel.members.size === 1) {
+        const queue = distube.getQueue(oldState.guild.id);
+        if (queue) {
+            queue.stop(); // Detener la música
+            client.voice.adapters.get(oldState.guild.id)?.destroy(); // Salir del canal
+            oldState.channel.send("😢 Me quedé solo... ¡Me voy del canal!");
+        }
+    }
+});
+
 
 // Eventos de Distube
 distube.on("playSong", (queue, song) => {
