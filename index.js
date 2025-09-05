@@ -29,25 +29,25 @@ client.once("ready", () => {
     console.log(`${client.user.tag} listo`);
 });
 
-// Comando !play
+// Comando -play
 client.on("messageCreate", async (message) => {
     if (!message.guild) return;
     if (message.author.bot) return;
 
-    const prefix = "!";
+    const prefix = "-";
     if (!message.content.startsWith(prefix)) return;
 
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
     const queue = distube.getQueue(message.guildId);
+    const voiceChannel = message.member.voice.channel;
 
-    // Comando !play
+    // Comando -play
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
 
-        const voiceChannel = message.member.voice.channel;
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero");
 
         try {
@@ -62,15 +62,15 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando !stop
-    else if (command === "stop") {
+    // Comando -para
+    else if (command === "para") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.stop();
         message.channel.send("⏹️ Reproducción detenida y cola borrada.");
     }
 
-    // Comando !skip
-    else if (command === "skip") {
+    // Comando -otra
+    else if (command === "otra") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         try {
             queue.skip();
@@ -80,18 +80,27 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando !pause
-    else if (command === "pause") {
+    // Comando -callate
+    else if (command === "callate") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.pause();
         message.channel.send("⏸️ Canción pausada.");
     }
 
-    // Comando !resume
-    else if (command === "resume") {
+    // Comando -canta
+    else if (command === "canta") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
+    }
+
+    // Comando -fuera para que el bot salga del canal
+    else if (command === "fuera") {
+        if (!voiceChannel) return message.channel.send("Debes estar en un canal de voz para usar este comando.");
+        if (!queue) return message.channel.send("El bot no está reproduciendo nada.");
+        queue.stop();
+        client.voice.adapters.get(message.guild.id)?.destroy(); // Desconecta del canal
+        message.channel.send("👋 Me salí del canal de voz.");
     }
 });
 
