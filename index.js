@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { DisTube } from "distube";
-import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube 
+import { YtDlpPlugin } from "@distube/yt-dlp";
 import dotenv from "dotenv";
 import ffmpeg from "ffmpeg-static";
 
@@ -26,7 +26,6 @@ client.once("ready", () => {
     console.log(`${client.user.tag} listo`);
 });
 
-// Comandos
 client.on("messageCreate", async (message) => {
     if (!message.guild) return;
     if (message.author.bot) return;
@@ -40,7 +39,6 @@ client.on("messageCreate", async (message) => {
     const queue = distube.getQueue(message.guildId);
     const voiceChannel = message.member.voice.channel;
 
-    // Comando -play
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
@@ -58,14 +56,12 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando -para
     else if (command === "para") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.stop();
         message.channel.send("⏹️ Reproducción detenida y cola borrada.");
     }
 
-    // Comando -otra
     else if (command === "otra") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         try {
@@ -76,34 +72,16 @@ client.on("messageCreate", async (message) => {
         }
     }
 
-    // Comando -callate
     else if (command === "callate") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.pause();
         message.channel.send("⏸️ Canción pausada.");
     }
 
-    // Comando -canta
     else if (command === "canta") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
-    }
-});
-
-// Salida automática cuando el bot queda solo
-client.on("voiceStateUpdate", (oldState, newState) => {
-    const botMember = oldState.guild.members.cache.get(client.user.id);
-    if (!botMember) return;
-
-    const botVoiceChannel = botMember.voice.channel;
-    if (botVoiceChannel && botVoiceChannel.members.size === 1) {
-        const queue = distube.getQueue(oldState.guild.id);
-        if (queue) {
-            queue.stop(); // Detener la música
-        }
-        botVoiceChannel.leave?.(); // Salir del canal
-        botVoiceChannel.send?.("😢 Me quedé solo... ¡Me voy del canal!").catch(() => {});
     }
 });
 
@@ -114,6 +92,12 @@ distube.on("playSong", (queue, song) => {
 
 distube.on("addSong", (queue, song) => {
     queue.textChannel.send(`✅ Agregada a la cola: **${song.name}** - \`${song.formattedDuration}\``);
+});
+
+// Cuando el canal de voz queda vacío
+distube.on("empty", (queue) => {
+    queue.textChannel.send("😢 Me quedé solo... ¡Me voy del canal!");
+    queue.stop();
 });
 
 client.login(process.env.DISCORD_TOKEN);
