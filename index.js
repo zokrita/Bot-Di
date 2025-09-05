@@ -94,27 +94,9 @@ client.on("messageCreate", async (message) => {
         message.channel.send("▶️ Canción reanudada.");
     }
 
-    // Comando -fuera para que el bot salga del canal
-    else if (command === "fuera") {
-        if (!voiceChannel) return message.channel.send("Debes estar en un canal de voz para usar este comando.");
-        if (!queue) return message.channel.send("El bot no está reproduciendo nada.");
-        queue.stop();
-        client.voice.adapters.get(message.guild.id)?.destroy(); // Desconecta del canal
-        message.channel.send("👋 Me salí del canal de voz.");
-    }
 });
 
-client.on("voiceStateUpdate", (oldState, newState) => {
-    // Si alguien sale de un canal de voz
-    if (oldState.channelId && oldState.channel && oldState.channel.members.size === 1) {
-        const queue = distube.getQueue(oldState.guild.id);
-        if (queue) {
-            queue.stop(); // Detener la música
-            client.voice.adapters.get(oldState.guild.id)?.destroy(); // Salir del canal
-            oldState.channel.send("😢 Me quedé solo... ¡Me voy del canal!");
-        }
-    }
-});
+
 
 
 // Eventos de Distube
