@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits } from "discord.js";
 import { DisTube } from "distube";
 import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube 
 import dotenv from "dotenv";
-import ffmpegPath from "ffmpeg-static";
+//import ffmpegPath from "ffmpeg-static";
 
 dotenv.config();
 
