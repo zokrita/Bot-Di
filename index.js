@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import { DisTube } from "distube";
-import { YtDlpPlugin } from "@distube/yt-dlp";
+import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube 
 import dotenv from "dotenv";
 import ffmpeg from "ffmpeg-static";
 
@@ -39,7 +39,20 @@ client.on("messageCreate", async (message) => {
     const queue = distube.getQueue(message.guildId);
     const voiceChannel = message.member.voice.channel;
 
-    if (command === "play") {
+    // Comando -join: el bot entra al canal sin reproducir
+    if (command === "join") {
+        if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero.");
+        try {
+            await voiceChannel.join(); // El bot se conecta al canal
+            message.channel.send(`👋 Me uní a ${voiceChannel.name}`);
+        } catch (err) {
+            console.error(err);
+            message.channel.send("❌ No pude unirme al canal.");
+        }
+    }
+
+    // Comando -play
+    else if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero");
@@ -56,12 +69,14 @@ client.on("messageCreate", async (message) => {
         }
     }
 
+    // Comando -para
     else if (command === "para") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.stop();
         message.channel.send("⏹️ Reproducción detenida y cola borrada.");
     }
 
+    // Comando -otra
     else if (command === "otra") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         try {
@@ -72,16 +87,32 @@ client.on("messageCreate", async (message) => {
         }
     }
 
+    // Comando -callate
     else if (command === "callate") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.pause();
         message.channel.send("⏸️ Canción pausada.");
     }
 
+    // Comando -canta
     else if (command === "canta") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
+    }
+});
+
+// Evento para salir automáticamente si queda solo
+client.on("voiceStateUpdate", (oldState, newState) => {
+    const botMember = oldState.guild.members.me;
+    if (!botMember.voice.channel) return; // Si el bot no está en ningún canal, no hacer nada
+
+    const channel = botMember.voice.channel;
+    if (channel.members.size === 1) { // Solo queda el bot
+        const queue = distube.getQueue(oldState.guild.id);
+        if (queue) queue.stop(); // Detener música
+        channel.leave(); // Salir del canal
+        channel.send("😢 Me quedé solo... ¡Me voy del canal!");
     }
 });
 
@@ -92,12 +123,6 @@ distube.on("playSong", (queue, song) => {
 
 distube.on("addSong", (queue, song) => {
     queue.textChannel.send(`✅ Agregada a la cola: **${song.name}** - \`${song.formattedDuration}\``);
-});
-
-// Cuando el canal de voz queda vacío
-distube.on("empty", (queue) => {
-    queue.textChannel.send("😢 Me quedé solo... ¡Me voy del canal!");
-    queue.stop();
 });
 
 client.login(process.env.DISCORD_TOKEN);
