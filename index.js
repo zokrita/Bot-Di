@@ -40,6 +40,9 @@ client.on("messageCreate", async (message) => {
     const args = message.content.slice(prefix.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
+    const queue = distube.getQueue(message.guildId);
+
+    // Comando !play
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
@@ -58,7 +61,40 @@ client.on("messageCreate", async (message) => {
             message.channel.send("❌ No se pudo reproducir la canción");
         }
     }
+
+    // Comando !stop
+    else if (command === "stop") {
+        if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
+        queue.stop();
+        message.channel.send("⏹️ Reproducción detenida y cola borrada.");
+    }
+
+    // Comando !skip
+    else if (command === "skip") {
+        if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
+        try {
+            queue.skip();
+            message.channel.send("⏭️ Saltando a la siguiente canción.");
+        } catch {
+            message.channel.send("❌ No hay más canciones en la cola.");
+        }
+    }
+
+    // Comando !pause
+    else if (command === "pause") {
+        if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
+        queue.pause();
+        message.channel.send("⏸️ Canción pausada.");
+    }
+
+    // Comando !resume
+    else if (command === "resume") {
+        if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
+        queue.resume();
+        message.channel.send("▶️ Canción reanudada.");
+    }
 });
+
 
 // Eventos de Distube
 distube.on("playSong", (queue, song) => {
