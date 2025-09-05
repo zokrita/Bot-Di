@@ -4,7 +4,6 @@ import { YtDlpPlugin } from "@distube/yt-dlp"; // Mejor manejo de Youtube
 import dotenv from "dotenv";
 import ffmpeg from "ffmpeg-static";
 
-
 dotenv.config();
 
 const client = new Client({
@@ -18,10 +17,8 @@ const client = new Client({
 
 // Inicializa Distube con el plugin YtDlp
 const distube = new DisTube(client, {
-    //searchSongs: 1,
     emitNewSongOnly: true,
     ffmpeg: ffmpeg,
-    //leaveOnFinish: true,
     plugins: [new YtDlpPlugin()]
 });
 
@@ -29,7 +26,7 @@ client.once("ready", () => {
     console.log(`${client.user.tag} listo`);
 });
 
-// Comando -play
+// Comandos
 client.on("messageCreate", async (message) => {
     if (!message.guild) return;
     if (message.author.bot) return;
@@ -47,7 +44,6 @@ client.on("messageCreate", async (message) => {
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
-
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero");
 
         try {
@@ -93,11 +89,23 @@ client.on("messageCreate", async (message) => {
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
     }
-
 });
 
+// Salida automática cuando el bot queda solo
+client.on("voiceStateUpdate", (oldState, newState) => {
+    const botMember = oldState.guild.members.cache.get(client.user.id);
+    if (!botMember) return;
 
-
+    const botVoiceChannel = botMember.voice.channel;
+    if (botVoiceChannel && botVoiceChannel.members.size === 1) {
+        const queue = distube.getQueue(oldState.guild.id);
+        if (queue) {
+            queue.stop(); // Detener la música
+        }
+        botVoiceChannel.leave?.(); // Salir del canal
+        botVoiceChannel.send?.("😢 Me quedé solo... ¡Me voy del canal!").catch(() => {});
+    }
+});
 
 // Eventos de Distube
 distube.on("playSong", (queue, song) => {
