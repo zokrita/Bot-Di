@@ -3,7 +3,6 @@ import { DisTube } from "distube";
 import { YtDlpPlugin } from "@distube/yt-dlp";
 import dotenv from "dotenv";
 import ffmpeg from "ffmpeg-static";
-import { joinVoiceChannel, getVoiceConnection } from "@discordjs/voice";
 
 dotenv.config();
 
@@ -38,45 +37,14 @@ client.on("messageCreate", async (message) => {
     const queue = distube.getQueue(message.guildId);
     const voiceChannel = message.member.voice.channel;
 
-    // JOIN: unir al bot al canal
-    if (command === "join") {
-        if (!voiceChannel) return message.channel.send("Debes estar en un canal de voz primero.");
-        joinVoiceChannel({
-            channelId: voiceChannel.id,
-            guildId: message.guild.id,
-            adapterCreator: message.guild.voiceAdapterCreator
-        });
-        return message.channel.send(`🔊 Me uní a **${voiceChannel.name}**`);
-    }
-
-    // LEAVE: salir del canal y cerrar conexión
-    if (command === "leave") {
-        const connection = getVoiceConnection(message.guild.id);
-        if (!connection) return message.channel.send("No estoy en ningún canal de voz.");
-        connection.destroy();
-        distube.voices.leave(message.guild.id); // Asegura que Distube también lo detecte
-        return message.channel.send("👋 Me salí del canal de voz.");
-    }
-
-    // PLAY: reproducir música con unión automática si no está en el canal
+    // PLAY: reproducir música
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero");
 
-        // Si no hay conexión, se une automáticamente antes de reproducir
-        const connection = getVoiceConnection(message.guild.id);
-        if (!connection) {
-            joinVoiceChannel({
-                channelId: voiceChannel.id,
-                guildId: message.guild.id,
-                adapterCreator: message.guild.voiceAdapterCreator
-            });
-            message.channel.send(`🔊 Me uní a **${voiceChannel.name}**`);
-        }
-
-        // Ahora intenta reproducir la canción
         try {
+            // Distube maneja la conexión automáticamente
             await distube.play(voiceChannel, query, {
                 member: message.member,
                 textChannel: message.channel,
@@ -118,6 +86,13 @@ client.on("messageCreate", async (message) => {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
+    }
+
+    // LEAVE: salir del canal
+    else if (command === "leave") {
+        if (!queue) return message.channel.send("No estoy reproduciendo nada.");
+        distube.voices.leave(message.guild.id);
+        message.channel.send("👋 Me salí del canal de voz.");
     }
 });
 
