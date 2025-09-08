@@ -58,12 +58,24 @@ client.on("messageCreate", async (message) => {
         return message.channel.send("👋 Me salí del canal de voz.");
     }
 
-    // PLAY: reproducir música
+    // PLAY: reproducir música con unión automática si no está en el canal
     if (command === "play") {
         const query = args.join(" ");
         if (!query) return message.channel.send("Debes poner un enlace o nombre de canción");
         if (!voiceChannel) return message.channel.send("Debes unirte a un canal de voz primero");
 
+        // Si no hay conexión, se une automáticamente antes de reproducir
+        const connection = getVoiceConnection(message.guild.id);
+        if (!connection) {
+            joinVoiceChannel({
+                channelId: voiceChannel.id,
+                guildId: message.guild.id,
+                adapterCreator: message.guild.voiceAdapterCreator
+            });
+            message.channel.send(`🔊 Me uní a **${voiceChannel.name}**`);
+        }
+
+        // Ahora intenta reproducir la canción
         try {
             await distube.play(voiceChannel, query, {
                 member: message.member,
