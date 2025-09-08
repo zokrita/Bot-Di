@@ -57,14 +57,14 @@ client.on("messageCreate", async (message) => {
     }
 
     // STOP: detener música
-    else if (command === "para") {
+    else if (command === "stop") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.stop();
         message.channel.send("⏹️ Reproducción detenida y cola borrada.");
     }
 
     // SKIP: siguiente canción
-    else if (command === "otra") {
+    else if (command === "skip") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         try {
             queue.skip();
@@ -75,14 +75,14 @@ client.on("messageCreate", async (message) => {
     }
 
     // PAUSE
-    else if (command === "callate") {
+    else if (command === "pause") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.pause();
         message.channel.send("⏸️ Canción pausada.");
     }
 
     // RESUME
-    else if (command === "canta") {
+    else if (command === "resume") {
         if (!queue) return message.channel.send("No hay canciones reproduciéndose.");
         queue.resume();
         message.channel.send("▶️ Canción reanudada.");
