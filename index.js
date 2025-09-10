@@ -1,4 +1,5 @@
 import { Client, GatewayIntentBits } from "discord.js";
+import { getVoiceConnection } from "@discordjs/voice";
 import { DisTube } from "distube";
 import { YtDlpPlugin } from "@distube/yt-dlp";
 import dotenv from "dotenv";
@@ -88,12 +89,25 @@ client.on("messageCreate", async (message) => {
         message.channel.send("▶️ Canción reanudada.");
     }
 
-    // LEAVE: salir del canal
-    else if (command === "leave") {
-        if (!queue) return message.channel.send("No estoy reproduciendo nada.");
-        distube.voices.leave(message.guild.id);
-        message.channel.send("👋 Me salí del canal de voz.");
+// LEAVE: salir del canal, funcione haya o no música
+else if (command === "leave") {
+    const connection = getVoiceConnection(message.guild.id);
+    if (!connection) return message.channel.send("No estoy en ningún canal de voz.");
+
+    // Si hay música, detenla antes de salir (opcional)
+    if (queue) {
+        try { queue.stop(); } catch (e) { console.warn("Error al detener la cola:", e); }
     }
+
+    // Cierra la conexión de voz
+    connection.destroy();
+
+    // Limpia la sesión interna de Distube (aunque no haya cola)
+    try { distube.voices.leave(message.guild.id); } catch (e) {}
+
+    return message.channel.send("👋 Me salí del canal de voz.");
+}
+
 });
 
 // Si el canal queda vacío, el bot se va
