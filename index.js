@@ -89,24 +89,48 @@ client.on("messageCreate", async (message) => {
         message.channel.send("▶️ Canción reanudada.");
     }
 
-// LEAVE: salir del canal, funcione haya o no música
+// LEAVE: salir del canal y cerrar conexión (robusto: funciona aunque no haya cola)
 else if (command === "leave") {
-    const connection = getVoiceConnection(message.guild.id);
-    if (!connection) return message.channel.send("No estoy en ningún canal de voz.");
+    const guildId = message.guild.id;
 
-    // Si hay música, detenla antes de salir (opcional)
-    if (queue) {
-        try { queue.stop(); } catch (e) { console.warn("Error al detener la cola:", e); }
+    // 1) Intentar que Distube salga (primero)
+    try {
+        // distube.voices.leave puede no devolver nada, por eso lo envolvemos
+        try { distube.voices.leave(guildId); } catch (e) { /* no crítico */ }
+        // Comprueba si aún hay conexión registrada
+        const connAfterDistube = getVoiceConnection(guildId);
+        if (!connAfterDistube) {
+            return message.channel.send("👋 Me salí del canal de voz.");
+        }
+        // Si sigue habiendo conexión, intentamos destruirla abajo
+    } catch (e) {
+        console.warn("distube.voices.leave error:", e);
     }
 
-    // Cierra la conexión de voz
-    connection.destroy();
+    // 2) Fallback: destruir la conexión si existe
+    const connection = getVoiceConnection(guildId);
+    if (connection) {
+        try {
+            connection.destroy();
+        } catch (e) {
+            console.warn("Error al destruir conexión:", e);
+        }
+        // Asegurar que Distube también limpie (silencioso)
+        try { distube.voices.leave(guildId); } catch (e) {}
+        return message.channel.send("👋 Me salí del canal de voz.");
+    }
 
-    // Limpia la sesión interna de Distube (aunque no haya cola)
-    try { distube.voices.leave(message.guild.id); } catch (e) {}
+    // 3) Último recurso: si el miembro bot está en canal (pero no hay objeto connection)
+    const botMember = message.guild.members.me;
+    if (botMember && botMember.voice && botMember.voice.channel) {
+        // Puede que no tengamos una connection (caso extraño). Pedimos al usuario que detenga la reproducción.
+        return message.channel.send("Veo que estoy en el canal, pero no puedo cerrar la conexión automáticamente. Usa `-para` para detener la reproducción y luego `-leave` nuevamente.");
+    }
 
-    return message.channel.send("👋 Me salí del canal de voz.");
+    // 4) Si no hay nada de lo anterior
+    return message.channel.send("No estoy en ningún canal de voz.");
 }
+
 
 });
 
